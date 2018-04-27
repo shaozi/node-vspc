@@ -72,11 +72,13 @@ const server = net.createServer((c) => {
       record.sockets.push(socket)
       socket.on('end', () => {
         var record = vmProxies[vmName]
-        assert(record)
-        var index = record.sockets.indexOf(socket)
-        assert(index != -1)
-        record.sockets.splice(index, 1)
-        winston.info(`Client disconnected from VM ${vmName}`)
+        if (record && record.sockets) {
+          var index = record.sockets.indexOf(socket)
+          if (index != -1) {
+            record.sockets.splice(index, 1)
+            winston.info(`Client disconnected from VM ${vmName}`)
+          }
+        }
       })
       socket.on('data', (data) => {
         var tBuffer = new TBuffer(data)

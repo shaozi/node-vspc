@@ -14,8 +14,8 @@ const client = net.createConnection({ host: CONFIG.redis.host, port: CONFIG.prox
   client.write('world!\r\n')
 })
 client.on('data', (data) => {
-  console.log(data.toString())
-  if (data.toString() == 'exit') {
+  console.log(data)
+  if (data.toString() == 'x') {
     client.end()
   }
 })
