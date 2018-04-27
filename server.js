@@ -168,7 +168,7 @@ const server = net.createServer((c) => {
       case TELNET.KNOWN_SUBOPTIONS_1:
         winston.debug(`recv known suboptions 1 from vm. options = ${valArray}`)
         // we only know how to get vm name
-        var knownCommands = valArray.filter(val => { return SupportedTELNET.indexOf(val) != -1 })
+        var knownCommands = valArray.filter(val => { return SupportedCommands.indexOf(val) != -1 })
         sendVMWareOption(socket, [TELNET.KNOWN_SUBOPTIONS_2].concat(knownCommands))
         if (knownTELNET.indexOf(TELNET.GET_VM_NAME) != -1) {
           sendVMWareOption(socket, TELNET.GET_VM_NAME)
@@ -220,7 +220,7 @@ const server = net.createServer((c) => {
           var subCommand = tBuffer.read()
           var yesResponse = command == TELNET.WILL ? TELNET.DO : TELNET.WILL
           var noResponse = command == TELNET.WILL ? TELNET.DONT : TELNET.WONT
-          var response = SupportedTELNET.indexOf(subCommand) == -1 ? noResponse : yesResponse
+          var response = SupportedCommands.indexOf(subCommand) == -1 ? noResponse : yesResponse
           winston.debug(`Recv ${command} ${subCommand}, Send ${response} ${subCommand}`)
           sendDoDontWillWont(socket, response, subCommand)
           break
