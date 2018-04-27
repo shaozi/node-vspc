@@ -3,6 +3,7 @@ const assert = require('assert')
 const redis = require('redis')
 const winston = require('winston')
 const TBuffer = require('./TBuffer')
+const TELNET = require('./telnet_const')
 
 const CONFIG = require('./config')
 const ProxyListenPort = CONFIG.proxyListenPort
@@ -18,91 +19,24 @@ if (!process.env.NODE_ENV || process.env.NODE_ENV != "production") {
 
 
 
-const Commands = {
-  IAC: 255, // Interpret as Command
-  DONT: 254, // you are not to use option
-  DO: 253, // please use option
-  WONT: 252, // I won't use option
-  WILL: 251, // I will use option
-  SB: 250, // sub-negotiation
-  GA: 249, // Go-ahead
-  EL: 248, // Erase line
-  EC: 247, // Erase character
-  AYT: 246, // Are you there
-  AO: 245, // Abort output (but let prog finish)
-  IP: 244, // Interrupt (permanently)
-  BREAK: 243,
-  DM: 242, // Data mark
-  NOP: 241,
-  SE: 240, // End sub-negotiation
-  EOR: 239, // End of record (transparent mode)
-  ABORT: 238, // Abort process
-  SUSP: 237, // Suspend process
-  EOF: 236, // End of file
-  SYNCH: 242,
 
-  //https://www.vmware.com/support/developer/vc-sdk/visdk41pubs/vsp41_usingproxy_virtual_serial_ports.pdf
-  VMOTION_BEGIN: 40,
-  VMOTION_GOAHEAD: 41,
-  VMOTION_NOTNOW: 43,
-  VMOTION_PEER: 44,
-  VMOTION_PEER_OK: 45,
-  VMOTION_COMPLETE: 46,
-  VMOTION_ABORT: 48,
-
-  VM_VC_UUID: 80,
-  GET_VM_VC_UUID: 81,
-  VM_NAME: 82,
-  GET_VM_NAME: 83,
-  VM_BIOS_UUID: 84,
-  GET_VM_BIOS_UUID: 85,
-  VM_LOCATION_UUID: 86,
-  GET_VM_LOCATION_UUID: 87,
-
-  VMWARE_TELNET_EXT: 232, // VMWARE-TELNET-EXT 232,
-  WONT_PROXY: 73, // DO-PROXY, 73
-  WILL_PROXY: 71, // DO-PROXY, 71
-  DO_PROXY: 70, // DO-PROXY, 70
-  UNKNOWN_SUBOPTIONS_2: 3,
-  UNKNOWN_SUBOPTIONS_1: 2,
-  KNOWN_SUBOPTIONS_2: 1,
-  KNOWN_SUBOPTIONS_1: 0
-
-}
-// https://www.iana.org/assignments/telnet-options/telnet-options.xhtml
-const Options = {
-
-  OPT_BINARY: 0,  // RFC 856
-  OPT_ECHO: 1,  // RFC 857
-  OPT_SUPPRESS_GO_AHEAD: 3,  // RFC 858
-  OPT_STATUS: 5,  // RFC 859
-  OPT_TIMING_MARK: 6,  // RFC 860
-  OPT_TTYPE: 24, // RFC 930, 1091
-  OPT_WINDOW_SIZE: 31, // RFC 1073
-  OPT_LINE_MODE: 34, // RFC 1184
-  OPT_AUTHENTICATION: 37, // RFC 2941
-  OPT_NEW_ENVIRON: 39, // RFC 1572
-  OPT_COMPRESS2: 86, // http://www.zuggsoft.com/zmud/mcp.htm
-  TELQUAL_IS: 0,
-  TELQUAL_SEND: 1
-}
 
 const SupportedCommands = [
-  Options.OPT_BINARY,
-  Options.OPT_ECHO,
-  Options.OPT_SUPPRESS_GO_AHEAD,
+  TELNET.OPT_BINARY,
+  TELNET.OPT_ECHO,
+  TELNET.OPT_SUPPRESS_GO_AHEAD,
 
-  Commands.KNOWN_SUBOPTIONS_1,
-  Commands.KNOWN_SUBOPTIONS_2,
-  Commands.UNKNOWN_SUBOPTIONS_1,
-  Commands.UNKNOWN_SUBOPTIONS_2,
+  TELNET.KNOWN_SUBOPTIONS_1,
+  TELNET.KNOWN_SUBOPTIONS_2,
+  TELNET.UNKNOWN_SUBOPTIONS_1,
+  TELNET.UNKNOWN_SUBOPTIONS_2,
 
-  Commands.VMWARE_TELNET_EXT,
-  Commands.WONT_PROXY,
-  Commands.WILL_PROXY,
-  Commands.DO_PROXY,
-  Commands.GET_VM_NAME,
-  Commands.VM_NAME
+  TELNET.VMWARE_TELNET_EXT,
+  TELNET.WONT_PROXY,
+  TELNET.WILL_PROXY,
+  TELNET.DO_PROXY,
+  TELNET.GET_VM_NAME,
+  TELNET.VM_NAME
 ]
 
 
@@ -129,11 +63,11 @@ const server = net.createServer((c) => {
     tearDownTelnetServer()
     winston.info(`VM ${vmName} disconnected`);
   })
-  sendDoDontWillWont(c, Commands.WILL, Options.OPT_BINARY)
-  sendDoDontWillWont(c, Commands.WILL, Options.OPT_SUPPRESS_GO_AHEAD)
-  sendDoDontWillWont(c, Commands.WILL, Options.OPT_ECHO)
-  sendDoDontWillWont(c, Commands.DO, Options.OPT_BINARY)
-  sendDoDontWillWont(c, Commands.DO, Options.OPT_SUPPRESS_GO_AHEAD)
+  sendDoDontWillWont(c, TELNET.WILL, TELNET.OPT_BINARY)
+  sendDoDontWillWont(c, TELNET.WILL, TELNET.OPT_SUPPRESS_GO_AHEAD)
+  sendDoDontWillWont(c, TELNET.WILL, TELNET.OPT_ECHO)
+  sendDoDontWillWont(c, TELNET.DO, TELNET.OPT_BINARY)
+  sendDoDontWillWont(c, TELNET.DO, TELNET.OPT_SUPPRESS_GO_AHEAD)
 
 
   var vmName = ""
@@ -145,11 +79,11 @@ const server = net.createServer((c) => {
       winston.info(`Client connected to VM ${vmName}`)
       socket.setNoDelay()
       // send telnet options
-      sendDoDontWillWont(socket, Commands.WILL, Options.OPT_BINARY)
-      sendDoDontWillWont(socket, Commands.WILL, Options.OPT_SUPPRESS_GO_AHEAD)
-      sendDoDontWillWont(socket, Commands.WILL, Options.OPT_ECHO)
-      sendDoDontWillWont(socket, Commands.DO, Options.OPT_BINARY)
-      sendDoDontWillWont(socket, Commands.DO, Options.OPT_SUPPRESS_GO_AHEAD)
+      sendDoDontWillWont(socket, TELNET.WILL, TELNET.OPT_BINARY)
+      sendDoDontWillWont(socket, TELNET.WILL, TELNET.OPT_SUPPRESS_GO_AHEAD)
+      sendDoDontWillWont(socket, TELNET.WILL, TELNET.OPT_ECHO)
+      sendDoDontWillWont(socket, TELNET.DO, TELNET.OPT_BINARY)
+      sendDoDontWillWont(socket, TELNET.DO, TELNET.OPT_SUPPRESS_GO_AHEAD)
       var record = vmProxies[vmName]
       assert(record)
       record.sockets.push(socket)
@@ -164,7 +98,7 @@ const server = net.createServer((c) => {
       socket.on('data', (data) => {
         var tBuffer = new TBuffer(data)
         tBuffer.print()
-        if (data.readUInt8(0) == Commands.IAC) {
+        if (data.readUInt8(0) == TELNET.IAC) {
           processBuffer(socket, tBuffer)
         } else {
           processData(socket, tBuffer)
@@ -214,12 +148,12 @@ const server = net.createServer((c) => {
   }
 
   function sendDoDontWillWont(socket, action, cmd) {
-    socket.write(Buffer.from([Commands.IAC, action, cmd]))
+    socket.write(Buffer.from([TELNET.IAC, action, cmd]))
   }
 
   function sendVMWareOption(socket, options) {
-    socket.write(Buffer.from([Commands.IAC, Commands.SB, Commands.VMWARE_TELNET_EXT].concat(
-      options, Commands.IAC, Commands.SE
+    socket.write(Buffer.from([TELNET.IAC, TELNET.SB, TELNET.VMWARE_TELNET_EXT].concat(
+      options, TELNET.IAC, TELNET.SE
     )))
   }
 
@@ -227,9 +161,9 @@ const server = net.createServer((c) => {
     assert(tBuffer instanceof TBuffer)
     winston.debug('process vmware sub negotiation')
     var option = tBuffer.read()
-    var valArray = tBuffer.readUntil(Commands.IAC)
+    var valArray = tBuffer.readUntil(TELNET.IAC)
     switch (option) {
-      case Commands.VM_NAME:
+      case TELNET.VM_NAME:
         var recvVmName = valArray.reduce((pv, cv) => { return pv + String.fromCharCode(cv) }, "")
         winston.info(`VM NAME = ${recvVmName}`)
         if (vmName === "") {
@@ -242,33 +176,33 @@ const server = net.createServer((c) => {
           }
         }
         break
-      case Commands.VM_VC_UUID:
+      case TELNET.VM_VC_UUID:
         vmId = valArray.reduce((pv, cv) => { return pv + String.fromCharCode(cv) }, "")
         winston.info(`VM ID = ${vmId}`)
         break
-      case Commands.DO_PROXY:
+      case TELNET.DO_PROXY:
         var dirAndUri = valArray.reduce((pv, cv) => { return pv + String.fromCharCode(cv) }, "")
         var direction = dirAndUri.substr(0, 1)
         var uri = dirAndUri.substr(1)
         winston.debug(`Proxy direction = ${direction}, uri = ${uri}`)
-        sendVMWareOption(socket, Commands.WILL_PROXY)
+        sendVMWareOption(socket, TELNET.WILL_PROXY)
         break
-      case Commands.KNOWN_SUBOPTIONS_1:
+      case TELNET.KNOWN_SUBOPTIONS_1:
         winston.debug(`recv known suboptions 1 from vm. options = ${valArray}`)
         // we only know how to get vm name
-        var knownCommands = valArray.filter(val => { return SupportedCommands.indexOf(val) != -1 })
-        sendVMWareOption(socket, [Commands.KNOWN_SUBOPTIONS_2].concat(knownCommands))
-        if (knownCommands.indexOf(Commands.GET_VM_NAME) != -1) {
-          sendVMWareOption(socket, Commands.GET_VM_NAME)
+        var knownCommands = valArray.filter(val => { return SupportedTELNET.indexOf(val) != -1 })
+        sendVMWareOption(socket, [TELNET.KNOWN_SUBOPTIONS_2].concat(knownCommands))
+        if (knownTELNET.indexOf(TELNET.GET_VM_NAME) != -1) {
+          sendVMWareOption(socket, TELNET.GET_VM_NAME)
         }
         break
       default:
         winston.debug(`recv unknown suboptions from vm. options = ${valArray}`)
-        sendVMWareOption(socket, [Commands.UNKNOWN_SUBOPTIONS_2].concat(valArray))
+        sendVMWareOption(socket, [TELNET.UNKNOWN_SUBOPTIONS_2].concat(valArray))
         break
     }
     var ending = tBuffer.read(2) // IAC SE
-    assert(ending[0] == Commands.IAC && ending[1] == Commands.SE)
+    assert(ending[0] == TELNET.IAC && ending[1] == TELNET.SE)
   }
 
   function processData(socket, tBuffer) {
@@ -299,52 +233,52 @@ const server = net.createServer((c) => {
         //winston.debug('Buffer is done')
         return
       }
-      assert(val == Commands.IAC)
+      assert(val == TELNET.IAC)
 
       var command = tBuffer.read()
       switch (command) {
-        case Commands.WILL:
-        case Commands.DO:
+        case TELNET.WILL:
+        case TELNET.DO:
           var subCommand = tBuffer.read()
-          var yesResponse = command == Commands.WILL ? Commands.DO : Commands.WILL
-          var noResponse = command == Commands.WILL ? Commands.DONT : Commands.WONT
-          var response = SupportedCommands.indexOf(subCommand) == -1 ? noResponse : yesResponse
+          var yesResponse = command == TELNET.WILL ? TELNET.DO : TELNET.WILL
+          var noResponse = command == TELNET.WILL ? TELNET.DONT : TELNET.WONT
+          var response = SupportedTELNET.indexOf(subCommand) == -1 ? noResponse : yesResponse
           winston.debug(`Recv ${command} ${subCommand}, Send ${response} ${subCommand}`)
           sendDoDontWillWont(socket, response, subCommand)
           break
-        case Commands.WONT:
-        case Commands.DONT:
+        case TELNET.WONT:
+        case TELNET.DONT:
           subCommand = tBuffer.read()
           winston.warn(`Recv dont or wont ${subCommand}`)
           break
-        case Commands.SB:
+        case TELNET.SB:
           subCommand = tBuffer.read()
           switch (subCommand) {
-            case Commands.VMWARE_TELNET_EXT:
+            case TELNET.VMWARE_TELNET_EXT:
               processVMWareSubOption(socket, tBuffer)
               break
             default:
               winston.warn(`We don't support sub negotiation ${subCommand}`)
-              var subOptions = tBuffer.readUntil(Commands.IAC)
+              var subOptions = tBuffer.readUntil(TELNET.IAC)
               winston.warn(`sub options = ${subOptions}`)
               var ending = tBuffer.read(2) // IAC SE
-              assert(ending[0] == Commands.IAC && ending[1] == Commands.SE)
+              assert(ending[0] == TELNET.IAC && ending[1] == TELNET.SE)
               break
           }
           break
-        case Commands.SE:
-        case Commands.NOP:
-        case Commands.BREAK:
-        case Commands.DM:
-        case Commands.IP:
-        case Commands.ABORT:
-        case Commands.AYT:
-        case Commands.EC:
-        case Commands.EL:
-        case Commands.GA:
+        case TELNET.SE:
+        case TELNET.NOP:
+        case TELNET.BREAK:
+        case TELNET.DM:
+        case TELNET.IP:
+        case TELNET.ABORT:
+        case TELNET.AYT:
+        case TELNET.EC:
+        case TELNET.EL:
+        case TELNET.GA:
           winston.warn(`We don't support ${command}.`)
           break
-        case Commands.IAC:
+        case TELNET.IAC:
           winston.warn('Got data 255')
           break
         default:
@@ -361,7 +295,7 @@ const server = net.createServer((c) => {
   c.on('data', (data) => {
     var tBuffer = new TBuffer(data)
     tBuffer.print()
-    if (data.readUInt8(0) == Commands.IAC) {
+    if (data.readUInt8(0) == TELNET.IAC) {
       processBuffer(c, tBuffer)
     } else {
       processData(c, tBuffer)

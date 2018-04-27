@@ -28,13 +28,14 @@ class TBuffer {
 
   readUntil(n) {
     var ret = []
-    for (var i = this.index; this.index < this.buffer.length; this.index++) {
-      var val = this.buffer.readUInt8(this.index)
+    for (var i = this.index; i < this.buffer.length; i++) {
+      var val = this.buffer.readUInt8(i)
       if (val == n) {
         break
       }
       ret.push(val)
     }
+    this.index = i
     return ret
   }
 
