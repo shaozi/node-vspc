@@ -189,15 +189,16 @@ const server = net.createServer((c) => {
     assert(tBuffer instanceof TBuffer)
     try {
       var record = vmProxies[vmName]
-      assert(record)
-      if (socket == record.vmSocket) {
-        //winston.debug('Write vm data to clients')
-        record.sockets.forEach(s => {
-          s.write(tBuffer.buffer)
-        })
-      } else {
-        //winston.info('Write client data to vm')
-        record.vmSocket.write(tBuffer.buffer)
+      if (record) {
+        if (socket == record.vmSocket) {
+          //winston.debug('Write vm data to clients')
+          record.sockets.forEach(s => {
+            s.write(tBuffer.buffer)
+          })
+        } else {
+          //winston.info('Write client data to vm')
+          record.vmSocket.write(tBuffer.buffer)
+        }
       }
     } catch (error) {
       winston.error(error)
