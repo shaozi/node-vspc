@@ -1,7 +1,7 @@
-const net = require('net');
+const net = require('net')
 const assert = require('assert')
 const winston = require('winston')
-const TBuffer = require('./TBuffer')
+const TBuffer = require('./TBuffer').default
 const TELNET = require('./telnet_const')
 const portmanager = require('./portmanager')
 
@@ -9,7 +9,7 @@ const CONFIG = require('./config')
 const ProxyListenPort = CONFIG.proxyListenPort
 
 
-if (!process.env.NODE_ENV || process.env.NODE_ENV != "production") {
+if (!process.env.NODE_ENV || process.env.NODE_ENV != 'production') {
   // use time stamp in winston when developing
   winston.remove(winston.transports.Console)
   winston.add(winston.transports.Console, { 'timestamp': true, colorize: true })
@@ -41,10 +41,10 @@ var vmProxies = {}
 const server = net.createServer((c) => {
   // 'connection' listener
   c.setNoDelay()
-  winston.info('VM connected');
+  winston.info('VM connected')
   c.on('end', () => {
     tearDownTelnetServer()
-    winston.info(`VM ${vmName} disconnected`);
+    winston.info(`VM ${vmName} disconnected`)
   })
   sendDoDontWillWont(c, TELNET.WILL, TELNET.OPT_BINARY)
   sendDoDontWillWont(c, TELNET.WILL, TELNET.OPT_SUPPRESS_GO_AHEAD)
@@ -53,8 +53,8 @@ const server = net.createServer((c) => {
   sendDoDontWillWont(c, TELNET.DO, TELNET.OPT_SUPPRESS_GO_AHEAD)
 
 
-  var vmName = ""
-  var vmId = ""
+  var vmName = ''
+  var vmId = ''
 
   function createTelnetServer() {
     winston.info(`Create Telnet Server for VM ${vmName}`)
@@ -92,10 +92,10 @@ const server = net.createServer((c) => {
     })
     telnetServer.on('error', (err) => {
       tearDownTelnetServer()
-      throw err;
+      throw err
     })
     portmanager.findFreePort((port) => {
-      if (port ==  null) {
+      if (port == null) {
         winston.error(`${vmName} cannot create telnet server. No TCP ports available!!!`)
       } else {
         port = parseInt(port)
@@ -107,7 +107,7 @@ const server = net.createServer((c) => {
             sockets: []
           }
           portmanager.recordPortForVm(vmName, port)
-          winston.info(`VM ${vmName} listening on port ${port}`);
+          winston.info(`VM ${vmName} listening on port ${port}`)
         })
       }
     })
@@ -121,9 +121,9 @@ const server = net.createServer((c) => {
     })
     record.telnetServer.close()
     delete vmProxies[vmName]
-    
+
     portmanager.freePortOfVm(vmName, record.port)
-    
+
     winston.info(`Telnet Server tear down for ${vmName}`)
   }
 
@@ -144,9 +144,9 @@ const server = net.createServer((c) => {
     var valArray = tBuffer.readUntil(TELNET.IAC)
     switch (option) {
       case TELNET.VM_NAME:
-        var recvVmName = valArray.reduce((pv, cv) => { return pv + String.fromCharCode(cv) }, "")
+        var recvVmName = valArray.reduce((pv, cv) => { return pv + String.fromCharCode(cv) }, '')
         winston.info(`VM NAME = ${recvVmName}`)
-        if (vmName === "") {
+        if (vmName === '') {
           vmName = recvVmName
           createTelnetServer()
         } else {
@@ -157,11 +157,11 @@ const server = net.createServer((c) => {
         }
         break
       case TELNET.VM_VC_UUID:
-        vmId = valArray.reduce((pv, cv) => { return pv + String.fromCharCode(cv) }, "")
+        vmId = valArray.reduce((pv, cv) => { return pv + String.fromCharCode(cv) }, '')
         winston.info(`VM ID = ${vmId}`)
         break
       case TELNET.DO_PROXY:
-        var dirAndUri = valArray.reduce((pv, cv) => { return pv + String.fromCharCode(cv) }, "")
+        var dirAndUri = valArray.reduce((pv, cv) => { return pv + String.fromCharCode(cv) }, '')
         var direction = dirAndUri.substr(0, 1)
         var uri = dirAndUri.substr(1)
         winston.debug(`Proxy direction = ${direction}, uri = ${uri}`)
@@ -172,7 +172,7 @@ const server = net.createServer((c) => {
         // we only know how to get vm name
         var knownCommands = valArray.filter(val => { return SupportedCommands.indexOf(val) != -1 })
         sendVMWareOption(socket, [TELNET.KNOWN_SUBOPTIONS_2].concat(knownCommands))
-        if (knownTELNET.indexOf(TELNET.GET_VM_NAME) != -1) {
+        if (knownCommands.indexOf(TELNET.GET_VM_NAME) != -1) {
           sendVMWareOption(socket, TELNET.GET_VM_NAME)
         }
         break
@@ -291,10 +291,10 @@ const server = net.createServer((c) => {
 
 server.on('error', (err) => {
   server.close()
-  throw err;
+  throw err
 })
 
 
 server.listen(ProxyListenPort, () => {
-  winston.info(`vSPC Proxy server bound to port ${ProxyListenPort}`);
+  winston.info(`vSPC Proxy server listen on port ${ProxyListenPort}`)
 })
