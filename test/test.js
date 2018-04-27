@@ -1,14 +1,21 @@
+/* for eslint */
+/* global test */
+
 var lib = require('./lib')
 
-test('Create 2000 vmconnections', () => {
+test('Create and tear down 2000 vmconnections', (done) => {
   var vmNames = []
-  for (var i = 0; i< 2000; i++) {
+  var total = 2000
+  for (var i = 0; i < total; i++) {
     vmNames.push(`VM (${i})`)
   }
+  var count = 0
   vmNames.map(vmName => {
     var con = lib.createVmConnection(vmName)
-    setTimeout(()=> {
-      con.close()
-    }, 1000)
+    setTimeout(() => {
+      con.end()
+      count++
+      if (count >= total) done()
+    }, 5000)
   })
-})
+}, 10000)
