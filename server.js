@@ -1,25 +1,19 @@
 const net = require('net');
 const assert = require('assert')
-const redis = require('redis')
 const winston = require('winston')
 const TBuffer = require('./TBuffer')
 const TELNET = require('./telnet_const')
+const portmanager = require('./portmanager')
 
 const CONFIG = require('./config')
 const ProxyListenPort = CONFIG.proxyListenPort
-const BasePort = CONFIG.telnetStartPort
-const TotalPort = CONFIG.maxTelnetPorts
-const FreePorts = "FreePorts"
+
 
 if (!process.env.NODE_ENV || process.env.NODE_ENV != "production") {
   // use time stamp in winston when developing
   winston.remove(winston.transports.Console)
   winston.add(winston.transports.Console, { 'timestamp': true, colorize: true })
 }
-
-
-
-
 
 const SupportedCommands = [
   TELNET.OPT_BINARY,
@@ -39,17 +33,6 @@ const SupportedCommands = [
   TELNET.VM_NAME
 ]
 
-
-const redisClient = redis.createClient({
-  host: CONFIG.redis.host,
-  port: CONFIG.redis.port,
-  password: CONFIG.redis.password
-})
-
-redisClient.del(FreePorts)
-for (var i = 0; i < TotalPort; i++) {
-  redisClient.rpush(FreePorts, BasePort + i)
-}
 
 // index with vm name
 // vmName: {port:1234, telnetServer: server, vmSocket: vmsocket, sockets: [u1, u2, u3]}
@@ -109,13 +92,9 @@ const server = net.createServer((c) => {
       tearDownTelnetServer()
       throw err;
     })
-    redisClient.rpop(FreePorts, (error, port) => {
-      if (error) {
-        winston.error(`Redis ran into error on pop port`)
-        throw error
-      }
+    portmanager.findPortForVm((port) => {
       if (port ==  null) {
-        winston.error(`${vmName} cannot create telnet server. Free ports run out!!!`)
+        winston.error(`${vmName} cannot create telnet server. No TCP ports available!!!`)
       } else {
         port = parseInt(port)
         telnetServer.listen(port, () => {
@@ -125,7 +104,7 @@ const server = net.createServer((c) => {
             vmSocket: c,
             sockets: []
           }
-          redisClient.set(`VM:${vmName}`, port)
+          portmanager.recordPortForVm(vmName, port)
           winston.info(`VM ${vmName} listening on port ${port}`);
         })
       }
@@ -141,8 +120,7 @@ const server = net.createServer((c) => {
     record.telnetServer.close()
     delete vmProxies[vmName]
     
-    redisClient.del(`VM:${vmName}`)
-    redisClient.rpush(FreePorts, record.port)
+    portmanager.freePortOfVm(vmName, record.port)
     
     winston.info(`Telnet Server tear down for ${vmName}`)
   }
