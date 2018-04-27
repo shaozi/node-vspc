@@ -92,7 +92,7 @@ const server = net.createServer((c) => {
       tearDownTelnetServer()
       throw err;
     })
-    portmanager.findPortForVm((port) => {
+    portmanager.findFreePort((port) => {
       if (port ==  null) {
         winston.error(`${vmName} cannot create telnet server. No TCP ports available!!!`)
       } else {
