@@ -213,6 +213,9 @@ const server = net.createServer((c) => {
         //winston.debug('Buffer is done')
         return
       }
+      if (val != TELNET.IAC) {
+        console.log(tBuffer)
+      }
       assert(val == TELNET.IAC)
 
       var command = tBuffer.read()
