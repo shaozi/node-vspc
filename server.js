@@ -1,7 +1,7 @@
 const net = require('net')
 const assert = require('assert')
 const winston = require('winston')
-const TBuffer = require('./TBuffer').default
+const TBuffer = require('./TBuffer')
 const TELNET = require('./telnet_const')
 const portmanager = require('./portmanager')
 
