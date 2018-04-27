@@ -214,7 +214,8 @@ const server = net.createServer((c) => {
         return
       }
       if (val != TELNET.IAC) {
-        console.log(tBuffer)
+        processData(socket, tBuffer)
+        return
       }
       assert(val == TELNET.IAC)
 
