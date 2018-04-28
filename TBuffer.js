@@ -1,3 +1,9 @@
+// Copyright (c) 2018 jingshaochen
+// 
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
+
 const winston = require('winston')
 
 class TBuffer {

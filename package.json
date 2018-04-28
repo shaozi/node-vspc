@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "main": "server.js",
   "license": "MIT",
+  "author": "Jingshao Chen",
   "scripts": {
     "test": "jest"
   },

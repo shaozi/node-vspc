@@ -1,3 +1,9 @@
+// Copyright (c) 2018 jingshaochen
+// 
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
+
 const net = require('net')
 const assert = require('assert')
 const winston = require('winston')
