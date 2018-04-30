@@ -5,6 +5,8 @@
   "redis": {
     "host": "localhost",
     "port": 6379,
-    "password": "password"
+    "password": "password",
+    "vmPortMapName": "VM:Port",
+    "freePortListName": "FreePorts"
   }
 }
