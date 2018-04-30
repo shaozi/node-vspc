@@ -16,8 +16,8 @@ const redisClient = redis.createClient({
 
 const BasePort = CONFIG.telnetStartPort
 const TotalPort = CONFIG.maxTelnetPorts
-const FreePorts = CONFIG.freePortListName
-const VmPortMap = CONFIG.vmPortMapName
+const FreePorts = CONFIG.redis.freePortListName
+const VmPortMap = CONFIG.redis.vmPortMapName
 // init
 redisClient.del(FreePorts)
 redisClient.del(VmPortMap)
