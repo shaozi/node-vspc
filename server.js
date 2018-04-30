@@ -140,12 +140,16 @@ const server = net.createServer((c) => {
       })
       delete vmProxies[vmName]
       portmanager.freePortOfVm(vmName, record.port)
+      winston.info(`All connections to ${vmName} are closed and record is deleted.`)
+    } else {
+      winston.warn(`Error while tearing down telnet server for ${vmName}, record does not exist!`)
     }
     if (telnetServer) {
       telnetServer.close()
+      winston.info(`Telnet Server tear down for ${vmName}`)
+    } else {
+      winston.warn(`Error while tearing down telnet server for ${vmName}, telnet server does not exist!`)
     }
-    
-    winston.info(`Telnet Server tear down for ${vmName}`)
   }
 
   function sendDoDontWillWont(socket, action, cmd) {
