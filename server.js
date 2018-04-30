@@ -138,14 +138,13 @@ const server = net.createServer((c) => {
       record.sockets.forEach(sockets => {
         sockets.end()
       })
+      delete vmProxies[vmName]
+      portmanager.freePortOfVm(vmName, record.port)
     }
     if (telnetServer) {
       telnetServer.close()
     }
-    delete vmProxies[vmName]
-
-    portmanager.freePortOfVm(vmName, record.port)
-
+    
     winston.info(`Telnet Server tear down for ${vmName}`)
   }
 
