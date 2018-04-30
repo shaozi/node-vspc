@@ -77,7 +77,7 @@ const server = net.createServer((c) => {
 
   function createTelnetServer() {
     winston.info(`Create Telnet Server for VM ${vmName}`)
-    const telnetServer = net.createServer(socket => {
+    const server = net.createServer(socket => {
       winston.info(`Client connected to VM ${vmName}`)
       socket.setNoDelay()
       // send telnet options
@@ -109,7 +109,7 @@ const server = net.createServer((c) => {
         }
       })
     })
-    telnetServer.on('error', (err) => {
+    server.on('error', (err) => {
       tearDownTelnetServer()
       throw err
     })
@@ -118,10 +118,9 @@ const server = net.createServer((c) => {
         winston.error(`${vmName} cannot create telnet server. No TCP ports available!!!`)
       } else {
         port = parseInt(port)
-        telnetServer.listen(port, () => {
+        server.listen(port, () => {
           vmProxies[vmName] = {
             port: port,
-            telnetServer: telnetServer,
             vmSocket: c,
             sockets: []
           }
@@ -130,6 +129,7 @@ const server = net.createServer((c) => {
         })
       }
     })
+    return server
   }
 
   function tearDownTelnetServer() {
