@@ -43,6 +43,7 @@ const SupportedCommands = [
 // index with vm name
 // vmName: {port:1234, telnetServer: server, vmSocket: vmsocket, sockets: [u1, u2, u3]}
 var vmProxies = {}
+var telnetServer
 
 const server = net.createServer((c) => {
   // 'connection' listener
@@ -55,7 +56,7 @@ const server = net.createServer((c) => {
   c.on('vm name', (recvVmName) => {
     if (vmName === '') {
       vmName = recvVmName
-      createTelnetServer()
+      telnetServer = createTelnetServer()
     } else {
       winston.info('got vm name again')
       if (vmName != recvVmName) {
@@ -133,11 +134,14 @@ const server = net.createServer((c) => {
 
   function tearDownTelnetServer() {
     var record = vmProxies[vmName]
-    assert(record)
-    record.sockets.forEach(sockets => {
-      sockets.end()
-    })
-    record.telnetServer.close()
+    if (record){
+      record.sockets.forEach(sockets => {
+        sockets.end()
+      })
+    }
+    if (telnetServer) {
+      telnetServer.close()
+    }
     delete vmProxies[vmName]
 
     portmanager.freePortOfVm(vmName, record.port)
