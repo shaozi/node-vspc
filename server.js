@@ -52,6 +52,18 @@ const server = net.createServer((c) => {
     tearDownTelnetServer()
     winston.info(`VM ${vmName} disconnected`)
   })
+  c.on('vm name', (recvVmName) => {
+    if (vmName === '') {
+      vmName = recvVmName
+      createTelnetServer()
+    } else {
+      winston.info('got vm name again')
+      if (vmName != recvVmName) {
+        winston.error(`New name : ${recvVmName} != old name: ${vmName}`)
+      }
+    }
+  })
+
   sendDoDontWillWont(c, TELNET.WILL, TELNET.OPT_BINARY)
   sendDoDontWillWont(c, TELNET.WILL, TELNET.OPT_SUPPRESS_GO_AHEAD)
   sendDoDontWillWont(c, TELNET.WILL, TELNET.OPT_ECHO)
@@ -151,7 +163,9 @@ const server = net.createServer((c) => {
     switch (option) {
       case TELNET.VM_NAME:
         var recvVmName = valArray.reduce((pv, cv) => { return pv + String.fromCharCode(cv) }, '')
+        socket.emit('vm name', recvVmName)
         winston.info(`VM NAME = ${recvVmName}`)
+        /*
         if (vmName === '') {
           vmName = recvVmName
           createTelnetServer()
@@ -161,13 +175,16 @@ const server = net.createServer((c) => {
             winston.error(`New name : ${recvVmName} != old name: ${vmName}`)
           }
         }
+        */
         break
       case TELNET.VM_VC_UUID:
         vmId = valArray.reduce((pv, cv) => { return pv + String.fromCharCode(cv) }, '')
+        socket.emit('vm id', vmId)
         winston.info(`VM ID = ${vmId}`)
         break
       case TELNET.DO_PROXY:
         var dirAndUri = valArray.reduce((pv, cv) => { return pv + String.fromCharCode(cv) }, '')
+        socket.emit('do proxy', dirAndUri)
         var direction = dirAndUri.substr(0, 1)
         var uri = dirAndUri.substr(1)
         winston.debug(`Proxy direction = ${direction}, uri = ${uri}`)
@@ -194,16 +211,17 @@ const server = net.createServer((c) => {
   function processData(socket, tBuffer) {
     assert(tBuffer instanceof TBuffer)
     try {
+      var buffer = tBuffer.buffer.slice(tBuffer.index)
       var record = vmProxies[vmName]
       if (record) {
         if (socket == record.vmSocket) {
           //winston.debug('Write vm data to clients')
           record.sockets.forEach(s => {
-            s.write(tBuffer.buffer)
+            s.write(buffer)
           })
         } else {
           //winston.info('Write client data to vm')
-          record.vmSocket.write(tBuffer.buffer)
+          record.vmSocket.write(buffer)
         }
       }
     } catch (error) {
@@ -238,9 +256,12 @@ const server = net.createServer((c) => {
           sendDoDontWillWont(socket, response, subCommand)
           break
         case TELNET.WONT:
+          subCommand = tBuffer.read()
+          winston.warn(`Recv wont ${subCommand} from ${socket.remoteAddress}`)
+          break
         case TELNET.DONT:
           subCommand = tBuffer.read()
-          winston.warn(`Recv dont or wont ${subCommand}`)
+          winston.warn(`Recv dont ${subCommand} from ${socket.remoteAddress}`)
           break
         case TELNET.SB:
           subCommand = tBuffer.read()
@@ -249,7 +270,7 @@ const server = net.createServer((c) => {
               processVMWareSubOption(socket, tBuffer)
               break
             default:
-              winston.warn(`We don't support sub negotiation ${subCommand}`)
+              winston.warn(`We don't support sub negotiation ${subCommand} from ${socket.remoteAddress}`)
               var subOptions = tBuffer.readUntil(TELNET.IAC)
               winston.warn(`sub options = ${subOptions}`)
               var ending = tBuffer.read(2) // IAC SE
@@ -258,6 +279,8 @@ const server = net.createServer((c) => {
           }
           break
         case TELNET.SE:
+          winston.warn('SE should be handled by SB already. This SE is extra! tBuffer = ', tBuffer)
+          break
         case TELNET.NOP:
         case TELNET.BREAK:
         case TELNET.DM:
@@ -267,13 +290,13 @@ const server = net.createServer((c) => {
         case TELNET.EC:
         case TELNET.EL:
         case TELNET.GA:
-          winston.warn(`We don't support ${command}.`)
+          winston.warn(`We don't really support ${command} from ${socket.remoteAddress}.`)
           break
         case TELNET.IAC:
           winston.warn('Got data 255')
           break
         default:
-          winston.warn(`We don't support ${command}.`)
+          winston.warn(`We don't support ${command} from ${socket.remoteAddress}.`)
           break
       }
       processBuffer(socket, tBuffer)
