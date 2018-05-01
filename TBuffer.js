@@ -61,6 +61,10 @@ class TBuffer {
     return ret
   }
 
+  hasMoreData() {
+    return (this.index < this.buffer.length)
+  }
+
   print() {
     if (this.peek() == 255) { // IAC
       winston.debug(this.buffer)

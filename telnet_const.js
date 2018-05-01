@@ -1,3 +1,8 @@
+// Copyright (c) 2018 jingshaochen
+// 
+// This software is released under the MIT License.
+// https://opensource.org/licenses/MIT
+
 module.exports = {
   IAC: 255, // Interpret as Command
   DONT: 254, // you are not to use option
