@@ -121,17 +121,17 @@ function sendData(sockets, tBuffer) {
 function processTelnetCommands(socket, tBuffer) {
   assert(tBuffer instanceof TBuffer)
   try {
-    var val = tBuffer.peek()
+    var val = tBuffer.read()
     if (typeof val === 'undefined') {
       //winston.debug('Buffer is done')
       return
     }
     if (val != TELNET.IAC) {
       //processVmData(socket, tBuffer)
+      tBuffer.index--
       return
     }
     assert(val == TELNET.IAC)
-    tBuffer.read() // pop IAC
     var command = tBuffer.read()
     switch (command) {
       case TELNET.WILL:
