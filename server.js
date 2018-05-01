@@ -41,7 +41,7 @@ const SupportedCommands = [
 
 
 function sendTelnetCommand(socket, action, cmd) {
-  if (cmd) {
+  if (typeof(cmd) != 'undefined') {
     socket.write(Buffer.from([TELNET.IAC, action, cmd]))
   } else {
     socket.write(Buffer.from([TELNET.IAC, action]))
@@ -121,17 +121,17 @@ function sendData(sockets, tBuffer) {
 function processTelnetCommands(socket, tBuffer) {
   assert(tBuffer instanceof TBuffer)
   try {
-    var val = tBuffer.read()
+    var val = tBuffer.peek()
     if (typeof val === 'undefined') {
       //winston.debug('Buffer is done')
       return
     }
     if (val != TELNET.IAC) {
       //processVmData(socket, tBuffer)
-      tBuffer.index--
       return
     }
     assert(val == TELNET.IAC)
+    tBuffer.read()
     var command = tBuffer.read()
     switch (command) {
       case TELNET.WILL:
