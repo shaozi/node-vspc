@@ -77,6 +77,15 @@ const server = net.createServer((vmSocket) => {
           }
         }
       })
+      clientSocket.on('close', () => {
+        if (proxyInfo) {
+          var index = proxyInfo.sockets.indexOf(clientSocket)
+          if (index != -1) {
+            proxyInfo.sockets.splice(index, 1)
+            winston.info(`Client disconnected from VM ${vmName}`)
+          }
+        }
+      })
 
       clientSocket.on('data', (data) => {
         var tBuffer = new TBuffer(data)
@@ -89,6 +98,14 @@ const server = net.createServer((vmSocket) => {
 
       clientSocket.on('error', (error) => {
         winston.error('Error on client socket', error)
+        clientSocket.destroy()
+        if (proxyInfo) {
+          var index = proxyInfo.sockets.indexOf(clientSocket)
+          if (index != -1) {
+            proxyInfo.sockets.splice(index, 1)
+            winston.info(`Client disconnected from VM ${vmName}`)
+          }
+        }
       })
     })
     server.on('error', (err) => {
@@ -165,7 +182,7 @@ const server = net.createServer((vmSocket) => {
     tearDownTelnetServer()
     winston.info(`VM ${vmName} disconnected`)
   })
-  
+
   vmSocket.on('error', (error) => {
     tearDownTelnetServer()
     winston.error(`VM ${vmName} has error`, error)
