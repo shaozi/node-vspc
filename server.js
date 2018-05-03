@@ -97,13 +97,16 @@ const server = net.createServer((vmSocket) => {
       })
 
       clientSocket.on('error', (error) => {
-        winston.error('Error on client socket', error)
+        winston.error(`Error on client socket for VM ${vmName}`, error)
         clientSocket.destroy()
         if (proxyInfo) {
+          winston.error(`Error on client socket for VM ${vmName}, total ${proxyInfo.sockets.length} client sockets in proxyInfo.`)
           var index = proxyInfo.sockets.indexOf(clientSocket)
           if (index != -1) {
+            let errSocket = proxyInfo.sockets[index]
+            winston.error(`Error client socket remote address: ${errSocket.remoteAddress}, remote port: ${errSocket.remotePort}`)
             proxyInfo.sockets.splice(index, 1)
-            winston.info(`Client disconnected from VM ${vmName}`)
+            winston.error(`Client destroied from VM ${vmName}`)
           }
         }
       })
