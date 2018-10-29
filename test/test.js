@@ -5,7 +5,7 @@ var lib = require('./lib')
 
 test('Create and tear down 2000 vmconnections (should be done on a different host)', (done) => {
   var vmNames = []
-  var total = 2000
+  var total = 500
   for (var i = 0; i < total; i++) {
     vmNames.push(`VM (${i})`)
   }
