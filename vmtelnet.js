@@ -4,7 +4,7 @@
 // https://opensource.org/licenses/MIT
 
 const assert = require('assert')
-const winston = require('winston')
+const logger = require('./logger')
 const TBuffer = require('./TBuffer')
 const TELNET = require('./telnet_const')
 
@@ -24,30 +24,30 @@ function sendVMWareOption(socket, options) {
 
 function processVMWareSubOption(socket, tBuffer, supportedCommands) {
   assert(tBuffer instanceof TBuffer)
-  winston.debug('process vmware sub negotiation')
+  logger.debug('process vmware sub negotiation')
   var option = tBuffer.read()
   var valArray = tBuffer.readUntil(TELNET.IAC)
   switch (option) {
     case TELNET.VM_NAME:
       var recvVmName = valArray.reduce((pv, cv) => { return pv + String.fromCharCode(cv) }, '')
       socket.emit('vm name', recvVmName)
-      winston.info(`VM NAME = ${recvVmName}`)
+      logger.info(`VM NAME = ${recvVmName}`)
       break
     case TELNET.VM_VC_UUID:
       var vmId = valArray.reduce((pv, cv) => { return pv + String.fromCharCode(cv) }, '')
       socket.emit('vm id', vmId)
-      winston.info(`VM ID = ${vmId}`)
+      logger.info(`VM ID = ${vmId}`)
       break
     case TELNET.DO_PROXY:
       var dirAndUri = valArray.reduce((pv, cv) => { return pv + String.fromCharCode(cv) }, '')
       socket.emit('do proxy', dirAndUri)
       var direction = dirAndUri.substr(0, 1)
       var uri = dirAndUri.substr(1)
-      winston.debug(`Proxy direction = ${direction}, uri = ${uri}`)
+      logger.debug(`Proxy direction = ${direction}, uri = ${uri}`)
       sendVMWareOption(socket, TELNET.WILL_PROXY)
       break
     case TELNET.KNOWN_SUBOPTIONS_1:
-      winston.debug(`recv known suboptions 1 from vm. options = ${valArray}`)
+      logger.debug(`recv known suboptions 1 from vm. options = ${valArray}`)
       // we only know how to get vm name
       var knownCommands = valArray.filter(val => { return supportedCommands.indexOf(val) != -1 })
       sendVMWareOption(socket, [TELNET.KNOWN_SUBOPTIONS_2].concat(knownCommands))
@@ -56,7 +56,7 @@ function processVMWareSubOption(socket, tBuffer, supportedCommands) {
       }
       break
     default:
-      winston.debug(`recv unknown suboptions from vm. options = ${valArray}`)
+      logger.debug(`recv unknown suboptions from vm. options = ${valArray}`)
       sendVMWareOption(socket, [TELNET.UNKNOWN_SUBOPTIONS_2].concat(valArray))
       break
   }
@@ -75,7 +75,7 @@ function sendData(sockets, tBuffer) {
       })
     }
   } catch (error) {
-    winston.error(error)
+    logger.error(error)
   }
 }
 
@@ -91,7 +91,7 @@ function processTelnetCommands(socket, tBuffer, supportedCommands) {
   try {
     var val = tBuffer.peek()
     if (typeof val === 'undefined') {
-      //winston.debug('Buffer is done')
+      //logger.debug('Buffer is done')
       return
     }
     if (val != TELNET.IAC) {
@@ -108,16 +108,16 @@ function processTelnetCommands(socket, tBuffer, supportedCommands) {
         var yesResponse = command == TELNET.WILL ? TELNET.DO : TELNET.WILL
         var noResponse = command == TELNET.WILL ? TELNET.DONT : TELNET.WONT
         var response = supportedCommands.indexOf(subCommand) == -1 ? noResponse : yesResponse
-        winston.debug(`Recv ${command} ${subCommand}, Send ${response} ${subCommand}`)
+        logger.debug(`Recv ${command} ${subCommand}, Send ${response} ${subCommand}`)
         sendTelnetCommand(socket, response, subCommand)
         break
       case TELNET.WONT:
         subCommand = tBuffer.read()
-        winston.warn(`Recv wont ${subCommand} from ${socket.remoteAddress}`)
+        logger.warn(`Recv wont ${subCommand} from ${socket.remoteAddress}`)
         break
       case TELNET.DONT:
         subCommand = tBuffer.read()
-        winston.warn(`Recv dont ${subCommand} from ${socket.remoteAddress}`)
+        logger.warn(`Recv dont ${subCommand} from ${socket.remoteAddress}`)
         break
       case TELNET.SB:
         subCommand = tBuffer.read()
@@ -126,16 +126,16 @@ function processTelnetCommands(socket, tBuffer, supportedCommands) {
             processVMWareSubOption(socket, tBuffer, supportedCommands)
             break
           default:
-            winston.warn(`We don't support sub negotiation ${subCommand} from ${socket.remoteAddress}`)
+            logger.warn(`We don't support sub negotiation ${subCommand} from ${socket.remoteAddress}`)
             var subOptions = tBuffer.readUntil(TELNET.IAC)
-            winston.warn(`sub options = ${subOptions}`)
+            logger.warn(`sub options = ${subOptions}`)
             var ending = tBuffer.read(2) // IAC SE
             assert(ending[0] == TELNET.IAC && ending[1] == TELNET.SE)
             break
         }
         break
       case TELNET.SE:
-        winston.warn('SE should be handled by SB already. This SE is extra! tBuffer = ', tBuffer)
+        logger.warn('SE should be handled by SB already. This SE is extra! tBuffer = ', tBuffer)
         break
       case TELNET.NOP:
       case TELNET.BREAK:
@@ -146,18 +146,18 @@ function processTelnetCommands(socket, tBuffer, supportedCommands) {
       case TELNET.EC:
       case TELNET.EL:
       case TELNET.GA:
-        winston.warn(`We don't really support ${command} from ${socket.remoteAddress}.`)
+        logger.warn(`We don't really support ${command} from ${socket.remoteAddress}.`)
         break
       case TELNET.IAC:
-        winston.warn('Got data 255')
+        logger.warn('Got data 255')
         break
       default:
-        winston.warn(`We don't support ${command} from ${socket.remoteAddress}.`)
+        logger.warn(`We don't support ${command} from ${socket.remoteAddress}.`)
         break
     }
     processTelnetCommands(socket, tBuffer, supportedCommands)
   } catch (error) {
-    winston.error(error)
+    logger.error(error)
   }
 }
 

@@ -4,7 +4,7 @@
 // https://opensource.org/licenses/MIT
 
 
-const winston = require('winston')
+const logger = require('./logger')
 
 class TBuffer {
   constructor(buf) {
@@ -67,9 +67,9 @@ class TBuffer {
 
   print() {
     if (this.peek() == 255) { // IAC
-      winston.debug(this.buffer)
+      logger.debug(this.buffer)
     } else {
-      winston.debug(this.buffer.toString('ascii'))
+      logger.debug(this.buffer.toString('ascii'))
     }
   }
 }

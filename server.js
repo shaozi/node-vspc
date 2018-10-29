@@ -6,7 +6,7 @@
 
 const net = require('net')
 const assert = require('assert')
-const winston = require('winston')
+const logger = require('./logger')
 const TBuffer = require('./TBuffer')
 const TELNET = require('./telnet_const')
 const vmTelnet = require('./vmtelnet')
@@ -14,13 +14,6 @@ const portmanager = require('./portmanager')
 
 const CONFIG = require('./config')
 const ProxyListenPort = CONFIG.proxyListenPort
-
-
-if (!process.env.NODE_ENV || process.env.NODE_ENV != 'production') {
-  // use time stamp in winston when developing
-  winston.remove(winston.transports.Console)
-  winston.add(winston.transports.Console, { 'timestamp': true, colorize: true })
-}
 
 const SupportedCommands = [
   TELNET.OPT_BINARY,
@@ -49,22 +42,25 @@ function sendTelnetInitCmds(socket) {
   vmTelnet.sendTelnetCommand(socket, TELNET.DO, TELNET.OPT_SUPPRESS_GO_AHEAD)
 }
 
+// call this only once when starting
+portmanager.init()
+
 const server = net.createServer((vmSocket) => {
   var telnetServer = null
   var proxyInfo = null
   var vmName = ''
-  winston.info('VM connected')
+  logger.info('VM connected')
 
   sendTelnetInitCmds(vmSocket)
 
-  function createTelnetServer() {
-    winston.info(`Create Telnet Server for VM ${vmName}`)
+  async function createTelnetServer() {
+    logger.info(`Create Telnet Server for VM ${vmName}`)
     const server = net.createServer(clientSocket => {
-      winston.info(`Client connected to VM ${vmName}`)
+      logger.info(`Client connected to VM ${vmName}`)
       clientSocket.setNoDelay()
       // send telnet options
       sendTelnetInitCmds(clientSocket)
-            
+
       assert(proxyInfo != null)
       proxyInfo.sockets.push(clientSocket)
 
@@ -73,7 +69,7 @@ const server = net.createServer((vmSocket) => {
           var index = proxyInfo.sockets.indexOf(clientSocket)
           if (index != -1) {
             proxyInfo.sockets.splice(index, 1)
-            winston.info(`Client disconnected from VM ${vmName}`)
+            logger.info(`Client end event disconnected from VM ${vmName}`)
           }
         }
       })
@@ -82,7 +78,7 @@ const server = net.createServer((vmSocket) => {
           var index = proxyInfo.sockets.indexOf(clientSocket)
           if (index != -1) {
             proxyInfo.sockets.splice(index, 1)
-            winston.info(`Client disconnected from VM ${vmName}`)
+            logger.info(`Client close event disconnected from VM ${vmName}`)
           }
         }
       })
@@ -97,44 +93,44 @@ const server = net.createServer((vmSocket) => {
       })
 
       clientSocket.on('error', (error) => {
-        winston.error(`Error on client socket for VM ${vmName}`, error)
+        logger.error(`Error on client socket for VM ${vmName}`, error)
         clientSocket.destroy()
         if (proxyInfo) {
-          winston.error(`Error on client socket for VM ${vmName}, total ${proxyInfo.sockets.length} client sockets in proxyInfo.`)
+          logger.error(`Error on client socket for VM ${vmName}, total ${proxyInfo.sockets.length} client sockets in proxyInfo.`)
           var index = proxyInfo.sockets.indexOf(clientSocket)
           if (index != -1) {
             let errSocket = proxyInfo.sockets[index]
-            winston.error(`Error client socket remote address: ${errSocket.remoteAddress}, remote port: ${errSocket.remotePort}`)
+            logger.error(`Error client socket remote address: ${errSocket.remoteAddress}, remote port: ${errSocket.remotePort}`)
             proxyInfo.sockets.splice(index, 1)
-            winston.error(`Client destroied from VM ${vmName}`)
+            logger.error(`Client destroied from VM ${vmName}`)
           }
         }
       })
     })
-    server.on('error', (err) => {
-      tearDownTelnetServer()
+
+    server.on('error', async (err) => {
+      await tearDownTelnetServer()
       throw err
     })
-    portmanager.findFreePort((port) => {
-      if (port == null) {
-        winston.error(`${vmName} cannot create telnet server. No TCP ports available!!!`)
-      } else {
-        port = parseInt(port)
-        server.listen(port, () => {
-          proxyInfo = {
-            port: port,
-            sockets: []
-          }
-          //vmProxies[vmName] = proxyInfo
-          portmanager.recordPortForVm(vmName, port)
-          winston.info(`VM ${vmName} listening on port ${port}`)
-        })
+
+    var port = await portmanager.allocPort(vmName)
+    logger.info(`allocate port ${port} for ${vmName}`)
+    port = parseInt(port)
+    if (!port) {
+      // don't create anything
+      return null
+    }
+    server.listen(port, () => {
+      proxyInfo = {
+        port: port,
+        sockets: []
       }
+      logger.info(`VM ${vmName} listening on port ${port}`)
     })
     return server
   }
 
-  function tearDownTelnetServer() {
+  async function tearDownTelnetServer() {
     //if (vmProxies[vmName]) {
     //  delete vmProxies[vmName]
     //}
@@ -142,30 +138,30 @@ const server = net.createServer((vmSocket) => {
       proxyInfo.sockets.forEach(sockets => {
         sockets.end()
       })
-      portmanager.freePortOfVm(vmName, proxyInfo.port)
-      winston.info(`All connections to ${vmName} are closed and record is deleted.`)
+      await portmanager.freePort(vmName)
+      logger.info(`All connections to ${vmName} are closed and record is deleted.`)
     } else {
-      winston.warn(`Error while tearing down telnet server for ${vmName}, record does not exist!`)
+      logger.warn(`Error while tearing down telnet server for ${vmName}, record does not exist!`)
     }
     if (telnetServer) {
       telnetServer.close()
-      winston.info(`Telnet Server tear down for ${vmName}`)
+      logger.info(`Telnet Server tear down for ${vmName}`)
     } else {
-      winston.warn(`Error while tearing down telnet server for ${vmName}, telnet server does not exist!`)
+      logger.warn(`Error while tearing down telnet server for ${vmName}, telnet server does not exist!`)
     }
   }
 
 
   vmSocket.setNoDelay()
-  
-  vmSocket.on('vm name', (recvVmName) => {
+
+  vmSocket.on('vm name', async (recvVmName) => {
     if (vmName === '') {
       vmName = recvVmName
-      telnetServer = createTelnetServer()
+      telnetServer = await createTelnetServer()
     } else {
-      winston.info('got vm name again')
+      logger.info('got vm name again')
       if (vmName != recvVmName) {
-        winston.error(`New name : ${recvVmName} != old name: ${vmName}`)
+        logger.error(`New name : ${recvVmName} != old name: ${vmName}`)
       }
     }
   })
@@ -181,14 +177,15 @@ const server = net.createServer((vmSocket) => {
     }
   })
 
-  vmSocket.on('end', () => {
-    tearDownTelnetServer()
-    winston.info(`VM ${vmName} disconnected`)
+  vmSocket.on('end', async () => {
+    await tearDownTelnetServer()
+    logger.info(`VM ${vmName} disconnected`)
   })
 
-  vmSocket.on('error', (error) => {
-    tearDownTelnetServer()
-    winston.error(`VM ${vmName} has error`, error)
+  vmSocket.on('error', async (error) => {
+    await tearDownTelnetServer()
+    logger.error(`VM ${vmName} has error`)
+    logger.error(error)
   })
 })
 
@@ -198,5 +195,5 @@ server.on('error', (err) => {
 })
 
 server.listen(ProxyListenPort, () => {
-  winston.info(`vSPC Proxy server listen on port ${ProxyListenPort}`)
+  logger.info(`vSPC Proxy server listen on port ${ProxyListenPort}`)
 })
