@@ -1,5 +1,5 @@
 const net = require('net')
-const TELNET = require('../telnet_const')
+const TELNET = require('../lib/telnet_const')
 const CONFIG = require('../config')
 
 function createVmConnection(vmName) {

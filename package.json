@@ -1,11 +1,12 @@
 {
-  "name": "vspcserver",
+  "name": "node-vspc",
   "version": "1.0.0",
   "main": "server.js",
   "license": "MIT",
   "author": "Jingshao Chen",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "start": "node server.js"
   },
   "dependencies": {
     "bluebird": "^3.5.2",
@@ -15,5 +16,27 @@
   "devDependencies": {
     "eslint": "^5.8.0",
     "jest": "^23.6.0"
-  }
+  },
+  "description": "Nodejs based VMWare VM serial console vSPC Proxy Server",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shaozi/node-vspc.git"
+  },
+  "keywords": [
+    "VMWare",
+    "Telnet",
+    "Serial",
+    "Console",
+    "VSPC",
+    "Nodejs",
+    "Proxy"
+  ],
+  "bugs": {
+    "url": "https://github.com/shaozi/node-vspc/issues"
+  },
+  "homepage": "https://github.com/shaozi/node-vspc#readme"
 }

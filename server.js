@@ -6,11 +6,11 @@
 
 const net = require('net')
 const assert = require('assert')
-const logger = require('./logger')
-const TBuffer = require('./TBuffer')
-const TELNET = require('./telnet_const')
-const vmTelnet = require('./vmtelnet')
-const portmanager = require('./portmanager')
+const logger = require('./lib/logger')
+const TBuffer = require('./lib/TBuffer')
+const TELNET = require('./lib/telnet_const')
+const vmTelnet = require('./lib/vmtelnet')
+const portmanager = require('./lib/portmanager')
 
 const CONFIG = require('./config')
 const ProxyListenPort = CONFIG.proxyListenPort
