@@ -51,10 +51,9 @@ const server = net.createServer((vmSocket) => {
   var vmName = ''
   logger.info('VM connected')
 
-  sendTelnetInitCmds(vmSocket)
-
   async function createTelnetServer() {
     logger.info(`Create Telnet Server for VM ${vmName}`)
+    
     const createdServer = net.createServer(clientSocket => {
       logger.info(`Client connected to VM ${vmName}`)
       clientSocket.setNoDelay()
@@ -111,7 +110,7 @@ const server = net.createServer((vmSocket) => {
     createdServer.on('error', async (err) => {
       logger.error(`telnet server runs in to error: ${err}. Tear down`)
       await tearDownTelnetServer()
-      throw err
+      //throw err
     })
 
     try {
@@ -137,28 +136,28 @@ const server = net.createServer((vmSocket) => {
   }
 
   async function tearDownTelnetServer() {
-    //if (vmProxies[vmName]) {
-    //  delete vmProxies[vmName]
-    //}
-    if (proxyInfo) {
-      proxyInfo.sockets.forEach(sockets => {
-        sockets.end()
-      })
-      logger.info(`All connections to ${vmName} are closed and record is deleted.`)
-    } else {
-      logger.warn(`Error while tearing down telnet server for ${vmName}, record does not exist!`)
-    }
     if (telnetServer) {
-      telnetServer.close()
-      logger.info(`Telnet Server tear down for ${vmName}`)
+      telnetServer.close((error) => {
+        if (error) {
+          logger.error(`telnet server encounter error when closing: ${error}`)
+        }
+        if (proxyInfo) {
+          proxyInfo.sockets.forEach(sockets => {
+            sockets.end()
+          })
+          proxyInfo = null
+          logger.info(`All connections to ${vmName} are closed and record is deleted.`)
+        } else {
+          logger.warn(`Error while tearing down telnet server for ${vmName}, record does not exist!`)
+        }
+        telnetServer = null
+        logger.info(`Telnet Server tear down for ${vmName}`)
+      })
     } else {
       logger.warn(`Error while tearing down telnet server for ${vmName}, telnet server does not exist!`)
     }
     await portmanager.freePort(vmName)
   }
-
-
-  vmSocket.setNoDelay()
 
   vmSocket.on('vm name', async (recvVmName) => {
     if (vmName === '') {
@@ -193,6 +192,10 @@ const server = net.createServer((vmSocket) => {
     logger.error(error)
     await tearDownTelnetServer()
   })
+
+  vmSocket.setNoDelay()
+  sendTelnetInitCmds(vmSocket)
+
 })
 
 server.on('error', (err) => {

@@ -3,19 +3,25 @@
 
 var lib = require('./lib')
 
-test('Create and tear down 2000 vmconnections (should be done on a different host)', (done) => {
+var total = 4000
+var connectionRate = 100
+var duration = 5
+
+test(`Create and tear down ${total} vmconnections @ ${connectionRate} connections/second (should be done on a different host)`, (done) => {
   var vmNames = []
-  var total = 500
+
   for (var i = 0; i < total; i++) {
     vmNames.push(`VM (${i})`)
   }
   var count = 0
-  vmNames.map(vmName => {
-    var con = lib.createVmConnection(vmName)
+  vmNames.map((vmName, i) => {
     setTimeout(() => {
-      con.end()
-      count++
-      if (count >= total) done()
-    }, 5000)
+      var con = lib.createVmConnection(vmName)
+      setTimeout(() => {
+        con.end()
+        count++
+        if (count >= total) done()
+      }, duration * 1000)
+    }, i * 1000 / connectionRate)
   })
-}, 10000)
+}, (duration + total / connectionRate) * 1000 * 2)
