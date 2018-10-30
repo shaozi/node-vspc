@@ -138,7 +138,6 @@ const server = net.createServer((vmSocket) => {
       proxyInfo.sockets.forEach(sockets => {
         sockets.end()
       })
-      await portmanager.freePort(vmName)
       logger.info(`All connections to ${vmName} are closed and record is deleted.`)
     } else {
       logger.warn(`Error while tearing down telnet server for ${vmName}, record does not exist!`)
@@ -149,6 +148,7 @@ const server = net.createServer((vmSocket) => {
     } else {
       logger.warn(`Error while tearing down telnet server for ${vmName}, telnet server does not exist!`)
     }
+    await portmanager.freePort(vmName)
   }
 
 
