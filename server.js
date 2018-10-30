@@ -55,7 +55,7 @@ const server = net.createServer((vmSocket) => {
 
   async function createTelnetServer() {
     logger.info(`Create Telnet Server for VM ${vmName}`)
-    const server = net.createServer(clientSocket => {
+    const createdServer = net.createServer(clientSocket => {
       logger.info(`Client connected to VM ${vmName}`)
       clientSocket.setNoDelay()
       // send telnet options
@@ -108,11 +108,11 @@ const server = net.createServer((vmSocket) => {
       })
     })
 
-    server.on('error', async (err) => {
+    createdServer.on('error', async (err) => {
       await tearDownTelnetServer()
       throw err
     })
-    
+
     try {
       var port = await portmanager.allocPort(vmName)
       logger.info(`allocate port ${port} for ${vmName}`)
@@ -121,14 +121,14 @@ const server = net.createServer((vmSocket) => {
         // don't create anything
         return null
       }
-      server.listen(port, () => {
+      createdServer.listen(port, () => {
         proxyInfo = {
           port: port,
           sockets: []
         }
         logger.info(`VM ${vmName} listening on port ${port}`)
       })
-      return server
+      return createdServer
     } catch (error) {
       logger.error(error)
       return null
