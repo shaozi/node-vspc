@@ -109,6 +109,7 @@ const server = net.createServer((vmSocket) => {
     })
 
     createdServer.on('error', async (err) => {
+      logger.error(`telnet server runs in to error: ${err}. Tear down`)
       await tearDownTelnetServer()
       throw err
     })
@@ -184,12 +185,12 @@ const server = net.createServer((vmSocket) => {
 
   vmSocket.on('end', async () => {
     await tearDownTelnetServer()
-    logger.info(`VM ${vmName} disconnected`)
+    logger.info(`VM ${vmName} receives END and is disconnected`)
   })
 
   vmSocket.on('error', async (error) => {
     await tearDownTelnetServer()
-    logger.error(`VM ${vmName} has error`)
+    logger.error(`VM ${vmName} receives ERROR: ${error}`)
     logger.error(error)
   })
 })
