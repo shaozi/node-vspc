@@ -195,6 +195,7 @@ const server = net.createServer((vmSocket) => {
 })
 
 server.on('error', (err) => {
+  logger.error(`SERVER runs into error! ${err}`)
   server.close()
   throw err
 })
