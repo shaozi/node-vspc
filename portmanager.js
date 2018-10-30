@@ -75,11 +75,12 @@ var allocPort = async function (vmName) {
 var freePort = async function (vmName) {
   var activeKey = `${activeKeyPrefix}${vmName}`
   var port = await redisClient.getAsync(activeKey)
-  if (!port) {
-    throw new Error(`Cannot find active port for ${vmName}. Free port failed.`)
+  if (port) {
+    await redisClient.multi().del(activeKey).rpush(availableKeyList, port).execAsync()
+  } else {
+    logger.warn(`${activeKey} does not have a port allocated.`)
+    await redisClient.delAsync(activeKey)
   }
-  redisClient.del(activeKey)
-  await redisClient.multi().del(activeKey).rpush(availableKeyList, port).execAsync()
 }
 
 module.exports = {
