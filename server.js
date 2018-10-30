@@ -112,22 +112,27 @@ const server = net.createServer((vmSocket) => {
       await tearDownTelnetServer()
       throw err
     })
-
-    var port = await portmanager.allocPort(vmName)
-    logger.info(`allocate port ${port} for ${vmName}`)
-    port = parseInt(port)
-    if (!port) {
-      // don't create anything
+    
+    try {
+      var port = await portmanager.allocPort(vmName)
+      logger.info(`allocate port ${port} for ${vmName}`)
+      port = parseInt(port)
+      if (!port) {
+        // don't create anything
+        return null
+      }
+      server.listen(port, () => {
+        proxyInfo = {
+          port: port,
+          sockets: []
+        }
+        logger.info(`VM ${vmName} listening on port ${port}`)
+      })
+      return server
+    } catch (error) {
+      logger.error(error)
       return null
     }
-    server.listen(port, () => {
-      proxyInfo = {
-        port: port,
-        sockets: []
-      }
-      logger.info(`VM ${vmName} listening on port ${port}`)
-    })
-    return server
   }
 
   async function tearDownTelnetServer() {
