@@ -23,6 +23,9 @@ function createVmConnection(vmName) {
   vmConnection.on('end', () => {
     //console.log('disconnected from server')
   })
+  vmConnection.on('error', (error) => {
+    console.error(`${vmName} socket has error: ${error}`)
+  })
   return vmConnection
 }
 
