@@ -6,12 +6,15 @@
   "author": "Jingshao Chen",
   "scripts": {
     "test": "jest",
-    "start": "node server.js"
+    "start": "node server.js",
+    "snyk-protect": "snyk protect",
+    "prepare": "npm run snyk-protect"
   },
   "dependencies": {
     "bluebird": "^3.5.2",
     "redis": "^2.8.0",
-    "winston": "^3.1.0"
+    "winston": "^3.1.0",
+    "snyk": "^1.189.0"
   },
   "devDependencies": {
     "eslint": "^5.8.0",
@@ -38,5 +41,6 @@
   "bugs": {
     "url": "https://github.com/shaozi/node-vspc/issues"
   },
-  "homepage": "https://github.com/shaozi/node-vspc#readme"
+  "homepage": "https://github.com/shaozi/node-vspc#readme",
+  "snyk": true
 }
