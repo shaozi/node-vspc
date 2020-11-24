@@ -14,7 +14,7 @@
     "bluebird": "^3.7.2",
     "redis": "^3.0.2",
     "winston": "^3.3.3",
-    "snyk": "^1.316.1"
+    "snyk": "^1.425.4"
   },
   "devDependencies": {
     "eslint": "^7.4.0",
