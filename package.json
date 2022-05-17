@@ -12,13 +12,13 @@
   },
   "dependencies": {
     "bluebird": "^3.7.2",
-    "redis": "^3.0.2",
-    "winston": "^3.3.3",
-    "snyk": "^1.465.0"
+    "redis": "^4.1.0",
+    "winston": "^3.7.2"
   },
   "devDependencies": {
-    "eslint": "^7.4.0",
-    "jest": "^26.1.0"
+    "snyk": "^1.931.0",
+    "eslint": "^8.15.0",
+    "jest": "^28.1.0"
   },
   "description": "Nodejs based VMWare VM serial console vSPC Proxy Server",
   "directories": {
